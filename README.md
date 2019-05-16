@@ -22,3 +22,4 @@ source bin/activate
 python3 -m venv .
 python3 -m pip install metar
 
+It's a custom component so it must be downloaded under /custom_components folder.
