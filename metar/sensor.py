@@ -32,7 +32,7 @@ SENSOR_TYPES = {
 }
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_AIRPORT_NAME): cv.string,
+    vol.Required(CONF_AIRPORT_NAME): cv.string,
     vol.Required(CONF_AIRPORT_CODE): cv.string,
     vol.Optional(CONF_MONITORED_CONDITIONS, default=[]):
         vol.All(cv.ensure_list, [vol.In(SENSOR_TYPES)]),	
@@ -61,8 +61,7 @@ class MetarSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        # return 'Metar ' + self._name + ' ' + self._airport_name
-        return '{} {}'.format("Metar ", self._name)
+        return self._name + " " + self._airport_name;
 
     @property
     def state(self):
@@ -75,7 +74,7 @@ class MetarSensor(Entity):
         return self._unit_of_measurement
 
     def update(self):
-        """Get the latest data from OWM and updates the states."""
+        """Get the latest data from Metar and updates the states."""
 
         try:
           self.weather_data.update()
@@ -130,7 +129,7 @@ class MetarData:
                 if line.startswith(self._airport_code):
                     report = line.strip()
                     self.sensor_data = Metar.Metar(line)
-                    # _LOGGER.error(self.sensor_data.temp.string())
+                    _LOGGER.info("METAR ",self.sensor_data.string())
                     break
             if not report:
                 _LOGGER.error("No data for ",self._airport_code,"\n\n")
