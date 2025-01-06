@@ -22,12 +22,13 @@ BASE_URL = "https://tgftp.nws.noaa.gov/data/observations/metar/stations/"
 _LOGGER = logging.getLogger(__name__)
 
 SENSOR_TYPES = {
-    'time': ['Updated', None],
+    'time': ['Updated ', None],
     'weather': ['Condition', None],
     'temperature': ['Temperature', 'C'],
     'wind': ['Wind speed', None],
-    'pressure': ['Pressure', 'hPa'],
-    'visibility': ['Visibility', 'm'],
+    'pressure': ['Pressure', None],
+    'visibility': ['Visibility', None],
+    'precipitation': ['Precipitation', None],
     'sky': ['Sky', None],
 }
 
@@ -88,10 +89,10 @@ class MetarSensor(Entity):
 
         try:
             if self.type == 'time':
-                self._state = self.weather_data.sensor_data.time.ctime()
+                 self._state = self.weather_data.sensor_data.time.ctime()
             if self.type == 'temperature':
-                degree = self.weather_data.sensor_data.temp.string().split(" ")
-                self._state = degree[0]
+                 degree = self.weather_data.sensor_data.temp.string().split(" ")
+                 self._state = degree[0]
             elif self.type == 'weather':
                 self._state = self.weather_data.sensor_data.present_weather()
             elif self.type == 'wind':
@@ -100,8 +101,12 @@ class MetarSensor(Entity):
                 self._state = self.weather_data.sensor_data.press.string("mb")
             elif self.type == 'visibility':
                 self._state = self.weather_data.sensor_data.visibility()
+                self._unit_of_measurement = 'm'
+            elif self.type == 'precipitation':
+                self._state = self.weather_data.sensor_data.precip_1hr
+                self._unit_of_measurement = 'in'
             elif self.type == 'sky':
-                self._state = self.weather_data.sensor_data.sky_conditions("\n     ")
+               self._state = self.weather_data.sensor_data.sky_conditions("\n     ")
         except KeyError:
             self._state = None
             _LOGGER.warning("Condition is currently not available: %s", self.type)
@@ -130,4 +135,5 @@ class MetarData:
 
                 _LOGGER.error("No METAR data found for %s", self._airport_code)
         except Exception as exc:
+            _LOGGER.error("Error retrieving METAR data for %s: %s", self._airport_code, exc)
             _LOGGER.error("Error retrieving METAR data for %s: %s", self._airport_code, exc)
