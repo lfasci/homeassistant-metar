@@ -4,7 +4,9 @@ import voluptuous as vol
 from aiohttp import ClientSession
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.typing import HomeAssistantType, ConfigType
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 from homeassistant.util import Throttle
 from homeassistant.const import CONF_MONITORED_CONDITIONS
@@ -35,7 +37,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_MONITORED_CONDITIONS, default=[]): vol.All(cv.ensure_list, [vol.In(SENSOR_TYPES)]),
 })
 
-async def async_setup_platform(hass: HomeAssistantType, config: ConfigType, async_add_entities, discovery_info=None):
+async def async_setup_platform(hass: HomeAssistant, config: ConfigType, async_add_entities, discovery_info=None):
     """Set up the METAR sensor platform."""
     airport = {
         'location': str(config[CONF_AIRPORT_NAME]),
@@ -87,7 +89,7 @@ class MetarSensor(Entity):
         try:
             if self.type == 'time':
                 self._state = self.weather_data.sensor_data.time.ctime()
-            elif self.type == 'temperature':
+            if self.type == 'temperature':
                 degree = self.weather_data.sensor_data.temp.string().split(" ")
                 self._state = degree[0]
             elif self.type == 'weather':
