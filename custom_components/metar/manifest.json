@@ -1,9 +1,9 @@
 {
   "domain": "metar",
-  "name": "Metar weather",
-  "version": "2021.07.1",
-  "documentation": "https://en.wikipedia.org/wiki/METAR",
-  "dependencies": [],
-  "codeowners": ["lfasci"],
-  "requirements": ["metar"]
+  "name": "METAR Sensor",
+  "version": "1.0.0",
+  "documentation": "https://github.com/lfasci/metar",
+  "requirements": ["python-metar"],
+  "codeowners": ["@lfasci"],
+  "config_flow": true
 }
