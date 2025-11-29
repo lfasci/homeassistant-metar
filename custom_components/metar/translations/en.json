@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure METAR Airport",
+        "description": "Set the airport details and choose which conditions to monitor"
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to METAR data source",
+      "invalid_airport": "Invalid airport code or no data available"
+    },
+    "abort": {
+      "already_configured": "This airport is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update monitored conditions"
+      }
+    }
+  }
+}
