@@ -5,5 +5,5 @@
 
 The configuration is now managed using the UI from: Settings-> Devices & Services -> METAR Sensor
 
-Old configurations in configuration.yml are ignored anc can be removed
+Old configurations in configuration.yml are ignored and can be removed
 
