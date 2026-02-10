@@ -1,4 +1,4 @@
-DOMAIN = "metar"
+DOMAIN = "metar_weather"
 
 CONF_AIRPORT_NAME = "airport_name"
 CONF_AIRPORT_CODE = "airport_code"
