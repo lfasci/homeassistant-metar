@@ -1,6 +1,6 @@
 {
-  "domain": "metar",
-  "name": "METAR Sensor",
+  "domain": "metar_weather",
+  "name": "METAR Weather Sensor",
   "codeowners": ["@lfasci"],
   "config_flow": true,
   "documentation": "https://github.com/lfasci/homeassistant-metar",
