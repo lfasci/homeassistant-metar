@@ -2,7 +2,7 @@
 **METAR** is an abbreviation for **Meteorological Aerodrome Report. It is a routine observation of the current weather conditions at an airport or aerodrome, produced regularly. This is a sensor for METAR temperatures. https://en.wikipedia.org/wiki/METAR
 
 ## Installation
-------
+
 ### Manual Installation
 
 1. Copy `homeassistant-metar` folder into your custom_components folder in your hass configuration directory.
