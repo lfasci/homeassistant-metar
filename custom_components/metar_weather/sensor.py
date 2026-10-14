@@ -57,8 +57,9 @@ class MetarSensor(SensorEntity):
         self.type = sensor_type
         self.weather_data = weather_data
 
-        # Keep the previous naming scheme so existing entity IDs stay the same
-        self._attr_name = f"{SENSOR_TYPES[sensor_type][0]} {airport['location']}"
+        # Entity name is just the measurement; HA prefixes the device name ("METAR EDDB")
+        self._attr_has_entity_name = True
+        self._attr_name = SENSOR_TYPES[sensor_type][0]
 
         # unique_id + device_info register the entities in the entity/device registry
         self._attr_unique_id = f"{entry.entry_id}_{sensor_type}"
