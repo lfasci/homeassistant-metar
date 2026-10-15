@@ -1,68 +1,107 @@
-from homeassistant.helpers.entity import Entity
-from .const import SENSOR_TYPES, CONF_AIRPORT_NAME, CONF_AIRPORT_CODE, CONF_MONITORED_CONDITIONS
+from datetime import timezone
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.const import (
+    UnitOfLength,
+    UnitOfPrecipitationDepth,
+    UnitOfPressure,
+    UnitOfTemperature,
+)
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+
+from .const import (
+    CONF_AIRPORT_CODE,
+    CONF_AIRPORT_NAME,
+    CONF_MONITORED_CONDITIONS,
+    DOMAIN,
+    SENSOR_TYPES,
+)
 from .metar_data import MetarData
+
+# sensor_type: (device_class, native_unit, state_class)
+SENSOR_META = {
+    "time": (SensorDeviceClass.TIMESTAMP, None, None),
+    "temperature": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT),
+    "pressure": (SensorDeviceClass.ATMOSPHERIC_PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT),
+    "visibility": (SensorDeviceClass.DISTANCE, UnitOfLength.METERS, SensorStateClass.MEASUREMENT),
+    "precipitation": (SensorDeviceClass.PRECIPITATION, UnitOfPrecipitationDepth.INCHES, SensorStateClass.MEASUREMENT),
+}
+
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     config = config_entry.data
     airport = {
         "location": config[CONF_AIRPORT_NAME],
-        "code": config[CONF_AIRPORT_CODE]
+        "code": config[CONF_AIRPORT_CODE].strip().upper(),  # NOAA file names are upper case
     }
 
     data = MetarData(hass, airport)
-    sensors = [
-        MetarSensor(airport, data, sensor_type, SENSOR_TYPES[sensor_type][1])
-        for sensor_type in config.get(CONF_MONITORED_CONDITIONS, [])
-    ]
+    # Fetch once before adding entities so all sensors start with data
+    await data.async_update()
 
-    async_add_entities(sensors, True)
+    async_add_entities(
+        [
+            MetarSensor(config_entry, airport, data, sensor_type)
+            for sensor_type in config.get(CONF_MONITORED_CONDITIONS, [])
+        ],
+        True,
+    )
 
-class MetarSensor(Entity):
-    def __init__(self, airport, weather_data, sensor_type, unit_of_measurement):
-        self._state = None
-        self._name = SENSOR_TYPES[sensor_type][0]
-        self._unit_of_measurement = unit_of_measurement
-        self._airport_name = airport["location"]
+
+class MetarSensor(SensorEntity):
+    def __init__(self, entry, airport, weather_data, sensor_type):
         self.type = sensor_type
         self.weather_data = weather_data
 
-    @property
-    def name(self):
-        return f"{self._name} {self._airport_name}"
+        # Entity name is just the measurement; HA prefixes the device name ("METAR EDDB")
+        self._attr_has_entity_name = True
+        self._attr_name = SENSOR_TYPES[sensor_type][0]
 
-    @property
-    def state(self):
-        return self._state
+        # unique_id + device_info register the entities in the entity/device registry
+        self._attr_unique_id = f"{entry.entry_id}_{sensor_type}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=f"METAR {airport['code']}",
+            model=airport["location"],
+            manufacturer="NOAA / NWS",
+            entry_type=DeviceEntryType.SERVICE,
+        )
 
-    @property
-    def unit_of_measurement(self):
-        return self._unit_of_measurement
+        device_class, unit, state_class = SENSOR_META.get(sensor_type, (None, None, None))
+        self._attr_device_class = device_class
+        self._attr_native_unit_of_measurement = unit
+        self._attr_state_class = state_class
 
     async def async_update(self):
         await self.weather_data.async_update()
         metar = self.weather_data.sensor_data
 
         if not metar:
-            self._state = None
+            self._attr_native_value = None
             return
 
         try:
-            if self.type == "time":
-                self._state = metar.time.ctime()
-            elif self.type == "temperature":
-                self._state = metar.temp.string().split(" ")[0]
-            elif self.type == "weather":
-                self._state = metar.present_weather()
-            elif self.type == "wind":
-                self._state = metar.wind()
-            elif self.type == "pressure":
-                self._state = metar.press.string("mb")
-            elif self.type == "visibility":
-                self._state = metar.visibility()
-            elif self.type == "precipitation":
-                self._state = metar.precip_1hr
-            elif self.type == "sky":
-                self._state = metar.sky_conditions("\n     ")
+            t = self.type
+            if t == "time":
+                # METAR observation time is UTC
+                self._attr_native_value = metar.time.replace(tzinfo=timezone.utc) if metar.time else None
+            elif t == "temperature":
+                self._attr_native_value = metar.temp.value("C") if metar.temp else None
+            elif t == "pressure":
+                self._attr_native_value = round(metar.press.value("HPA"), 1) if metar.press else None
+            elif t == "visibility":
+                self._attr_native_value = metar.vis.value("M") if metar.vis else None
+            elif t == "precipitation":
+                self._attr_native_value = metar.precip_1hr.value("IN") if metar.precip_1hr else None
+            elif t == "weather":
+                self._attr_native_value = metar.present_weather() or None
+            elif t == "wind":
+                self._attr_native_value = metar.wind() or None
+            elif t == "sky":
+                self._attr_native_value = metar.sky_conditions("\n     ") or None
         except Exception:
-            self._state = None
-                        
+            self._attr_native_value = None

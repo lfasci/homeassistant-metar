@@ -1,13 +1,16 @@
 import logging
 from datetime import timedelta
+
 from aiohttp import ClientSession
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import Throttle
 from metar import Metar
 
 BASE_URL = "https://tgftp.nws.noaa.gov/data/observations/metar/stations/"
-SCAN_INTERVAL = timedelta(seconds=3600)
+# Most stations publish every 30 min; polling hourly left data up to ~1.5 h old (#6, #7)
+SCAN_INTERVAL = timedelta(minutes=10)
 _LOGGER = logging.getLogger(__name__)
+
 
 class MetarData:
     def __init__(self, hass, airport):
@@ -23,12 +26,13 @@ class MetarData:
                 response.raise_for_status()
                 text = await response.text()
 
-                for line in text.splitlines():
-                    if line.startswith(self._airport_code):
-                        self.sensor_data = Metar.Metar(line)
-                        _LOGGER.info("METAR Data: %s", self.sensor_data.string())
-                        return
+            for line in text.splitlines():
+                if line.startswith(self._airport_code):
+                    # strict=False: don't fail on unknown groups and keep stale data
+                    self.sensor_data = Metar.Metar(line, strict=False)
+                    _LOGGER.debug("METAR %s: %s", self._airport_code, line)
+                    return
 
-                _LOGGER.error("No METAR data found for %s", self._airport_code)
+            _LOGGER.error("No METAR data found for %s", self._airport_code)
         except Exception as exc:
             _LOGGER.error("Error retrieving METAR data for %s: %s", self._airport_code, exc)
